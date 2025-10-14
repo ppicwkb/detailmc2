@@ -89,7 +89,7 @@
                     
                     allData = rows.map(row => {
                         const rawValue = row[colIndices.raw] || '';
-                        const rawFirst4 = rawValue.substring(0, 4);
+                        const rawFirst4 = rawValue.substring(0, 3);
                         let rawDisplay = rawFirst4;
                         if (rawFirst4 !== 'GIM' && rawFirst4 !== 'CONT') {
                             rawDisplay = 'WKB';
@@ -916,5 +916,6 @@
             await loadLastModified();
             await loadData();
         }
+
 
         init();
