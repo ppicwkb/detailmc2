@@ -91,7 +91,7 @@
                         const rawValue = row[colIndices.raw] || '';
                         const rawFirst4 = rawValue.substring(0, 3);
                         let rawDisplay = rawFirst4;
-                        if (rawFirst4 !== 'GIM' && rawFirst4 !== 'CONT') {
+                        if (rawFirst4 !== 'GIM' && rawFirst4 !== 'CON') {
                             rawDisplay = 'WKB';
                         }
                         
@@ -919,3 +919,4 @@
 
 
         init();
+
