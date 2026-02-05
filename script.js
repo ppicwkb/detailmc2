@@ -1,6 +1,6 @@
 
         const API_KEY = "AIzaSyBhiKDVDH4fle5_EqAIaA05YjpxVMEBYZM";
-        const SHEET_ID = "1dgXDpt3MTdpHZyhhY7VdKC3tT_EQJaqoBBb0VFXwJco";
+        const SHEET_ID = "1jeVUjgFmTDVNsOGbKgb9Lglp8guMCTh-bNapK9owO8k";
         const SHEET_NAME = "DETAIL";
         
         let allData = [];
@@ -919,4 +919,5 @@
 
 
         init();
+
 
