@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manajemen Stok WKB</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f0f2f5;
+            --surface: #ffffff;
+            --surface2: #f8f9fb;
+            --border: #e2e6ea;
+            --text: #1a1d23;
+            --text2: #5a6373;
+            --text3: #9aa3b0;
+            --accent: #2563eb;
+            --accent-light: #eff4ff;
+            --accent2: #0ea5e9;
+            --success: #10b981;
+            --success-light: #ecfdf5;
+            --warning: #f59e0b;
+            --warning-light: #fffbeb;
+            --danger: #ef4444;
+            --danger-light: #fef2f2;
+            --purple: #8b5cf6;
+            --purple-light: #f5f3ff;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+            --shadow: 0 4px 12px rgba(0,0,0,0.08);
+            --shadow-lg: 0 10px 30px rgba(0,0,0,0.1);
+            --radius: 12px;
+            --radius-sm: 8px;
+        }
+        [data-theme="dark"] {
+            --bg: #0f1117;
+            --surface: #1a1d27;
+            --surface2: #22263a;
+            --border: #2d3348;
+            --text: #e8ecf4;
+            --text2: #8b95a8;
+            --text3: #4d5668;
+            --accent: #3b82f6;
+            --accent-light: #1e2d4a;
+            --success-light: #0d2a1f;
+            --warning-light: #2a2010;
+            --danger-light: #2a1010;
+            --purple-light: #1e1a35;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+            --shadow: 0 4px 12px rgba(0,0,0,0.4);
+            --shadow-lg: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        /* ── SCROLLBAR ── */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+
+        /* ── TOPBAR ── */
+        .topbar {
+            position: sticky; top: 0; z-index: 100;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+            padding: 0 24px;
+            height: 60px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .topbar-brand { display: flex; align-items: center; gap: 10px; }
+        .topbar-logo {
+            width: 34px; height: 34px;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            border-radius: 9px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .topbar-logo svg { width: 18px; height: 18px; color: #fff; }
+        .topbar-title { font-size: 15px; font-weight: 700; letter-spacing: -0.3px; }
+        .topbar-sub { font-size: 11px; color: var(--text3); margin-top: 1px; }
+        .topbar-actions { display: flex; align-items: center; gap: 8px; }
+
+        /* ── ICON BUTTON ── */
+        .icon-btn {
+            width: 36px; height: 36px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            border-radius: var(--radius-sm);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; color: var(--text2);
+            transition: all 0.2s;
+        }
+        .icon-btn:hover { background: var(--surface2); color: var(--text); border-color: var(--accent); }
+        .icon-btn svg { width: 16px; height: 16px; }
+
+        /* ── MAIN LAYOUT ── */
+        .main { padding: 20px 24px; max-width: 1600px; margin: 0 auto; }
+
+        /* ── STATS GRID ── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            display: flex; align-items: center; gap: 14px;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.2s;
+        }
+        .stat-card:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
+        .stat-icon {
+            width: 42px; height: 42px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        .stat-icon svg { width: 20px; height: 20px; }
+        .stat-value { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; line-height: 1; }
+        .stat-label { font-size: 11px; color: var(--text2); margin-top: 3px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* ── PANEL ── */
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+        .panel-header {
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+            background: var(--surface2);
+        }
+        .panel-title { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .panel-title svg { width: 15px; height: 15px; color: var(--accent); }
+        .panel-body { padding: 16px 18px; }
+
+        /* ── SEARCH BAR ── */
+        .search-wrap {
+            position: relative;
+            flex: 1; min-width: 200px;
+        }
+        .search-wrap svg {
+            position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+            width: 15px; height: 15px; color: var(--text3); pointer-events: none;
+        }
+        .search-input {
+            width: 100%;
+            padding: 9px 12px 9px 36px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--surface);
+            color: var(--text);
+            font-family: inherit; font-size: 13px;
+            transition: all 0.2s;
+            outline: none;
+        }
+        .search-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent); }
+        .search-input::placeholder { color: var(--text3); }
+
+        /* ── FILTER GRID ── */
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+            gap: 10px;
+        }
+        .filter-group { position: relative; }
+        .filter-label { font-size: 11px; font-weight: 600; color: var(--text2); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px; display: block; }
+        .filter-input-wrap { position: relative; }
+        .filter-input {
+            width: 100%;
+            padding: 8px 30px 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--surface);
+            color: var(--text);
+            font-family: 'DM Mono', monospace; font-size: 12px;
+            transition: all 0.2s; outline: none;
+        }
+        .filter-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent); }
+        .filter-input::placeholder { color: var(--text3); font-family: 'DM Sans', sans-serif; font-size: 12px; }
+        .filter-chevron {
+            position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+            width: 16px; height: 16px; color: var(--text3); cursor: pointer;
+            transition: all 0.2s; pointer-events: all; z-index: 2;
+        }
+        .filter-chevron:hover { color: var(--accent); }
+
+        /* ── SUGGESTIONS ── */
+        .suggestions-dropdown {
+            position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow-lg);
+            max-height: 220px; overflow-y: auto;
+            z-index: 1000;
+        }
+        .suggestions-dropdown.hidden { display: none; }
+        .suggestion-item {
+            padding: 8px 12px;
+            font-size: 12px; font-family: 'DM Mono', monospace;
+            cursor: pointer; color: var(--text);
+            transition: background 0.1s;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .suggestion-item:hover, .suggestion-item.active { background: var(--accent-light); color: var(--accent); }
+        .suggestion-count { font-size: 10px; color: var(--text3); background: var(--surface2); padding: 1px 5px; border-radius: 4px; }
+        .suggestion-all { color: var(--text2); font-style: italic; font-family: 'DM Sans', sans-serif; }
+
+        /* ── ACTIVE FILTER CHIPS ── */
+        .chips-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; min-height: 0; }
+        .chip {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 3px 8px 3px 10px;
+            background: var(--accent-light);
+            border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+            border-radius: 99px;
+            font-size: 11px; font-weight: 600; color: var(--accent);
+            cursor: default;
+        }
+        .chip-close {
+            width: 14px; height: 14px;
+            background: color-mix(in srgb, var(--accent) 20%, transparent);
+            border-radius: 50%; border: none;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; color: var(--accent);
+            font-size: 10px; line-height: 1; padding: 0;
+            transition: background 0.15s;
+        }
+        .chip-close:hover { background: var(--accent); color: #fff; }
+
+        /* ── TOOLBAR ── */
+        .toolbar {
+            display: flex; align-items: center; justify-content: space-between;
+            flex-wrap: wrap; gap: 10px;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface2);
+        }
+        .toolbar-left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .toolbar-right { display: flex; align-items: center; gap: 8px; }
+
+        /* ── BTN ── */
+        .btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 7px 14px;
+            border-radius: var(--radius-sm); border: 1px solid var(--border);
+            font-family: inherit; font-size: 12px; font-weight: 600;
+            cursor: pointer; transition: all 0.2s; white-space: nowrap;
+        }
+        .btn svg { width: 13px; height: 13px; }
+        .btn-ghost { background: transparent; color: var(--text2); }
+        .btn-ghost:hover { background: var(--surface2); color: var(--text); border-color: var(--border); }
+        .btn-accent { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .btn-accent:hover { background: #1d4ed8; border-color: #1d4ed8; }
+        .btn-danger { background: transparent; color: var(--danger); border-color: var(--danger); }
+        .btn-danger:hover { background: var(--danger-light); }
+        .btn-success { background: transparent; color: var(--success); border-color: var(--success); }
+        .btn-success:hover { background: var(--success-light); }
+        .btn-purple { background: transparent; color: var(--purple); border-color: var(--purple); }
+        .btn-purple:hover { background: var(--purple-light); }
+
+        /* ── ZOOM CONTROL ── */
+        .zoom-ctrl {
+            display: flex; align-items: center; gap: 4px;
+            padding: 4px 6px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--surface);
+        }
+        .zoom-btn {
+            width: 22px; height: 22px;
+            border: none; background: none;
+            color: var(--text2); cursor: pointer;
+            border-radius: 5px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px; font-weight: 700; line-height: 1;
+            transition: all 0.15s;
+        }
+        .zoom-btn:hover:not(:disabled) { background: var(--accent-light); color: var(--accent); }
+        .zoom-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        .zoom-label { font-size: 11px; font-weight: 600; color: var(--text2); min-width: 34px; text-align: center; font-family: 'DM Mono', monospace; }
+
+        /* ── PER PAGE ── */
+        .per-page-sel {
+            padding: 5px 8px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--surface);
+            color: var(--text);
+            font-family: inherit; font-size: 12px;
+            cursor: pointer; outline: none;
+        }
+        .per-page-sel:focus { border-color: var(--accent); }
+
+        /* ── TABLE ── */
+        .table-wrap {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .zoom-container { transform-origin: top left; }
+        table { width: 100%; border-collapse: collapse; min-width: 900px; }
+        thead { background: var(--surface2); }
+        th {
+            padding: 10px 14px;
+            text-align: left;
+            font-size: 10px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.6px;
+            color: var(--text2);
+            border-bottom: 2px solid var(--border);
+            white-space: nowrap;
+            user-select: none;
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s;
+            position: sticky; top: 0; z-index: 5;
+            background: var(--surface2);
+        }
+        th:hover { background: var(--accent-light); color: var(--accent); }
+        th.sort-asc::after { content: ' ▲'; color: var(--accent); }
+        th.sort-desc::after { content: ' ▼'; color: var(--accent); }
+        td {
+            padding: 9px 14px;
+            font-size: 12px; color: var(--text);
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+            transition: background 0.1s;
+        }
+        tr:hover td { background: var(--accent-light); }
+        tr:last-child td { border-bottom: none; }
+
+        /* special columns */
+        .col-saldo { font-family: 'DM Mono', monospace; font-weight: 600; color: var(--success); }
+        .col-kode-jadi { font-family: 'DM Mono', monospace; font-weight: 600; color: var(--accent); }
+        .col-lokasi {
+            font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+            padding: 2px 7px; border-radius: 4px; display: inline-block;
+        }
+        .col-lokasi.wkb { background: var(--accent-light); color: var(--accent); }
+        .col-lokasi.gim { background: var(--success-light); color: var(--success); }
+        .col-lokasi.cont { background: var(--warning-light); color: var(--warning); }
+
+        /* highlight */
+        .hl { background: #fef08a; color: #713f12; border-radius: 2px; padding: 0 1px; }
+        [data-theme="dark"] .hl { background: #713f12; color: #fef08a; }
+
+        /* copy btn in row */
+        .copy-btn {
+            width: 22px; height: 22px; border: none;
+            background: none; cursor: pointer; color: var(--text3);
+            border-radius: 4px; display: none; align-items: center; justify-content: center;
+            transition: all 0.15s;
+        }
+        .copy-btn svg { width: 12px; height: 12px; }
+        tr:hover .copy-btn { display: flex; }
+        .copy-btn:hover { background: var(--surface2); color: var(--accent); }
+
+        /* ── SUMMARY BAR ── */
+        .summary-bar {
+            display: flex; align-items: center; justify-content: space-between;
+            flex-wrap: wrap; gap: 10px;
+            padding: 10px 16px;
+            background: color-mix(in srgb, var(--success) 8%, var(--surface));
+            border-top: 1px solid color-mix(in srgb, var(--success) 20%, transparent);
+            font-size: 12px;
+        }
+        .summary-item { display: flex; align-items: center; gap: 6px; font-weight: 500; color: var(--text2); }
+        .summary-value { font-family: 'DM Mono', monospace; font-weight: 700; color: var(--success); font-size: 14px; }
+
+        /* ── PAGINATION ── */
+        .pagination {
+            display: flex; align-items: center; justify-content: space-between;
+            flex-wrap: wrap; gap: 10px;
+            padding: 12px 16px;
+            border-top: 1px solid var(--border);
+        }
+        .page-info { font-size: 12px; color: var(--text2); }
+        .page-btns { display: flex; align-items: center; gap: 4px; }
+        .page-btn {
+            height: 30px; min-width: 30px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            border-radius: 6px;
+            color: var(--text2); font-size: 12px; font-weight: 500;
+            cursor: pointer; padding: 0 8px;
+            transition: all 0.15s; font-family: inherit;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .page-btn:hover:not(:disabled) { background: var(--accent-light); color: var(--accent); border-color: var(--accent); }
+        .page-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700; }
+        .page-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+        /* ── LAST MODIFIED ── */
+        .last-mod { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text3); }
+        .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+        /* ── LOADING ── */
+        .loading-wrap { padding: 60px; text-align: center; }
+        .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text { font-size: 14px; color: var(--text2); font-weight: 500; }
+        .loading-sub { font-size: 12px; color: var(--text3); margin-top: 4px; }
+
+        /* ── ERROR ── */
+        .error-wrap {
+            padding: 40px; text-align: center;
+            background: var(--danger-light);
+            border: 1px solid color-mix(in srgb, var(--danger) 20%, transparent);
+            border-radius: var(--radius); margin: 16px;
+        }
+        .error-title { font-size: 15px; font-weight: 700; color: var(--danger); margin-bottom: 6px; }
+        .error-sub { font-size: 13px; color: var(--text2); }
+
+        /* ── EMPTY ── */
+        .empty-wrap { padding: 60px; text-align: center; color: var(--text3); }
+        .empty-wrap svg { width: 40px; height: 40px; margin: 0 auto 12px; opacity: 0.3; display: block; }
+        .empty-title { font-size: 14px; font-weight: 600; }
+        .empty-sub { font-size: 12px; margin-top: 4px; }
+
+        /* ── TOAST ── */
+        .toast {
+            position: fixed; bottom: 24px; right: 24px;
+            background: var(--text); color: var(--surface);
+            padding: 10px 16px; border-radius: var(--radius-sm);
+            font-size: 12px; font-weight: 600;
+            box-shadow: var(--shadow-lg);
+            transform: translateY(80px); opacity: 0;
+            transition: all 0.3s cubic-bezier(.34,1.56,.64,1);
+            z-index: 9999; pointer-events: none;
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+
+        /* ── MOBILE ── */
+        @media (max-width: 768px) {
+            .topbar { padding: 0 14px; }
+            .main { padding: 12px 14px; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .filter-grid { grid-template-columns: repeat(2, 1fr); }
+            .toolbar { flex-direction: column; align-items: flex-start; }
+        }
+        @media (max-width: 480px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .filter-grid { grid-template-columns: 1fr 1fr; }
+        }
+
+        /* hide select elements completely */
+        .hidden-select { position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; }
+
+        .hidden { display: none !important; }
+
+        /* fade in */
+        .fade-in { animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+    </style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+    <div class="topbar-brand">
+        <div class="topbar-logo">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+        </div>
+        <div>
+            <div class="topbar-title">Manajemen Stok WKB</div>
+            <div class="topbar-sub">By PPIC</div>
+        </div>
+    </div>
+    <div class="topbar-actions">
+        <div class="last-mod" id="lastModified">
+            <div class="live-dot"></div>
+            <span>Memuat...</span>
+        </div>
+        <button class="icon-btn" onclick="toggleDark()" title="Toggle dark mode">
+            <svg id="darkIcon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+        </button>
+        <button class="icon-btn" onclick="loadData()" title="Refresh data">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        </button>
+    </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+    <!-- STATS -->
+    <div class="stats-grid" id="statsGrid">
+        <div class="stat-card fade-in">
+            <div class="stat-icon" style="background:var(--accent-light)">
+                <svg style="color:var(--accent)" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            </div>
+            <div>
+                <div class="stat-value" id="statTotal">—</div>
+                <div class="stat-label">Total Record</div>
+            </div>
+        </div>
+        <div class="stat-card fade-in">
+            <div class="stat-icon" style="background:var(--success-light)">
+                <svg style="color:var(--success)" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <div>
+                <div class="stat-value" id="statSaldo">—</div>
+                <div class="stat-label">Total Saldo</div>
+            </div>
+        </div>
+        <div class="stat-card fade-in">
+            <div class="stat-icon" style="background:var(--purple-light)">
+                <svg style="color:var(--purple)" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+            </div>
+            <div>
+                <div class="stat-value" id="statBrand">—</div>
+                <div class="stat-label">Brand</div>
+            </div>
+        </div>
+        <div class="stat-card fade-in">
+            <div class="stat-icon" style="background:var(--warning-light)">
+                <svg style="color:var(--warning)" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            </div>
+            <div>
+                <div class="stat-value" id="statPO">—</div>
+                <div class="stat-label">PO</div>
+            </div>
+        </div>
+        <div class="stat-card fade-in">
+            <div class="stat-icon" style="background:color-mix(in srgb, #ec4899 12%, transparent)">
+                <svg style="color:#ec4899" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+            </div>
+            <div>
+                <div class="stat-value" id="statProduk">—</div>
+                <div class="stat-label">Produk ID</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FILTER PANEL -->
+    <div class="panel fade-in">
+        <div class="panel-header">
+            <div class="panel-title">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/></svg>
+                Filter & Pencarian
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+                <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px" onclick="clearAllFilters()">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    Reset
+                </button>
+            </div>
+        </div>
+        <div class="panel-body">
+            <!-- Global search -->
+            <div style="margin-bottom:12px">
+                <div class="search-wrap" style="max-width:100%">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    <input type="text" id="globalSearch" class="search-input" placeholder="Cari semua kolom sekaligus...">
+                </div>
+            </div>
+            <!-- Per-column filters -->
+            <div class="filter-grid">
+                <!-- Produk ID -->
+                <div class="filter-group">
+                    <label class="filter-label">Produk ID</label>
+                    <div class="filter-input-wrap">
+                        <input type="text" id="produkFilter" class="filter-input" placeholder="Semua produk...">
+                        <svg class="filter-chevron" id="produkChevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" onclick="toggleDropdownSuggestions('produkSuggestions','produk','produkFilter')"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        <div class="suggestions-dropdown hidden" id="produkSuggestions"></div>
+                    </div>
+                </div>
+                <!-- Packing -->
+                <div class="filter-group">
+                    <label class="filter-label">Packing</label>
+                    <div class="filter-input-wrap">
+                        <input type="text" id="packingFilter" class="filter-input" placeholder="Semua packing...">
+                        <svg class="filter-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" onclick="toggleDropdownSuggestions('packingSuggestions','packing','packingFilter')"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        <div class="suggestions-dropdown hidden" id="packingSuggestions"></div>
+                    </div>
+                </div>
+                <!-- Brand -->
+                <div class="filter-group">
+                    <label class="filter-label">Brand</label>
+                    <div class="filter-input-wrap">
+                        <input type="text" id="brandFilter" class="filter-input" placeholder="Semua brand...">
+                        <svg class="filter-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" onclick="toggleDropdownSuggestions('brandSuggestions','brand','brandFilter')"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        <div class="suggestions-dropdown hidden" id="brandSuggestions"></div>
+                    </div>
+                </div>
+                <!-- PO -->
+                <div class="filter-group">
+                    <label class="filter-label">PO</label>
+                    <div class="filter-input-wrap">
+                        <input type="text" id="poFilter" class="filter-input" placeholder="Semua PO...">
+                        <svg class="filter-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" onclick="toggleDropdownSuggestions('poSuggestions','po','poFilter')"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        <div class="suggestions-dropdown hidden" id="poSuggestions"></div>
+                    </div>
+                </div>
+                <!-- Kode -->
+                <div class="filter-group">
+                    <label class="filter-label">Kode</label>
+                    <div class="filter-input-wrap">
+                        <input type="text" id="kodeFilter" class="filter-input" placeholder="Semua kode...">
+                        <svg class="filter-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" onclick="toggleDropdownSuggestions('kodeSuggestions','kode','kodeFilter')"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        <div class="suggestions-dropdown hidden" id="kodeSuggestions"></div>
+                    </div>
+                </div>
+            </div>
+            <!-- Active chips -->
+            <div class="chips-row" id="activeChips"></div>
+        </div>
+    </div>
+
+    <!-- LOADING -->
+    <div class="panel fade-in" id="loadingPanel">
+        <div class="loading-wrap">
+            <div class="spinner"></div>
+            <div class="loading-text">Memuat Data</div>
+            <div class="loading-sub">Mengambil data dari Google Sheets...</div>
+        </div>
+    </div>
+
+    <!-- ERROR -->
+    <div class="hidden" id="errorPanel">
+        <div class="error-wrap">
+            <div class="error-title">⚠ Gagal Memuat Data</div>
+            <div class="error-sub">Pastikan koneksi internet aktif dan sheet dapat diakses.</div>
+            <button class="btn btn-danger" style="margin-top:16px" onclick="loadData()">Coba Lagi</button>
+        </div>
+    </div>
+
+    <!-- DATA TABLE PANEL -->
+    <div class="panel hidden fade-in" id="dataPanel">
+        <!-- TOOLBAR -->
+        <div class="toolbar">
+            <div class="toolbar-left">
+                <span style="font-size:12px;color:var(--text2)" id="recordCount"></span>
+                <button class="btn btn-ghost" onclick="clearAllFilters()">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    Hapus Filter
+                </button>
+                <button class="btn btn-danger" onclick="exportToPDF()">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    PDF
+                </button>
+                <button class="btn btn-success" onclick="exportToExcel()">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    Excel
+                </button>
+                <button class="btn btn-purple" onclick="exportPivotTable()">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+                    Pivot
+                </button>
+            </div>
+            <div class="toolbar-right">
+                <!-- Items per page -->
+                <select class="per-page-sel" id="perPageSel" onchange="changePerPage(this.value)">
+                    <option value="20">20 / hal</option>
+                    <option value="40" selected>40 / hal</option>
+                    <option value="100">100 / hal</option>
+                    <option value="0">Semua</option>
+                </select>
+                <!-- Zoom -->
+                <div class="zoom-ctrl">
+                    <button class="zoom-btn" id="zoomOutBtn" onclick="adjustZoom(-10)" title="Ctrl + -">−</button>
+                    <span class="zoom-label" id="zoomLevel">100%</span>
+                    <button class="zoom-btn" id="zoomInBtn" onclick="adjustZoom(10)" title="Ctrl + +">+</button>
+                    <button class="zoom-btn" onclick="resetZoom()" title="Ctrl + 0" style="font-size:10px;min-width:28px">↺</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TABLE -->
+        <div class="table-wrap">
+            <div class="zoom-container" id="zoomContainer">
+                <table id="dataTable">
+                    <thead>
+                        <tr>
+                            <th data-col="raw" onclick="sortBy('raw')">Lokasi</th>
+                            <th data-col="plist" onclick="sortBy('plist')">No PL</th>
+                            <th data-col="produkId" onclick="sortBy('produkId')">Produk ID</th>
+                            <th data-col="packing" onclick="sortBy('packing')">Packing</th>
+                            <th data-col="brand" onclick="sortBy('brand')">Brand</th>
+                            <th data-col="po" onclick="sortBy('po')">PO</th>
+                            <th data-col="jd" onclick="sortBy('jd')">JD</th>
+                            <th data-col="kode" onclick="sortBy('kode')">Kode</th>
+                            <th data-col="kodeAsal" onclick="sortBy('kodeAsal')">Kode Asal</th>
+                            <th data-col="cek" onclick="sortBy('cek')">Cek</th>
+                            <th data-col="kodeJadi" onclick="sortBy('kodeJadi')">Kode Jadi</th>
+                            <th data-col="saldo" onclick="sortBy('saldo')">Saldo</th>
+                            <th style="cursor:default;width:30px"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="dataTableBody"></tbody>
+                </table>
+                <!-- Empty state -->
+                <div class="empty-wrap hidden" id="emptyState">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <div class="empty-title">Tidak ada data ditemukan</div>
+                    <div class="empty-sub">Coba ubah filter atau kata kunci pencarian</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SUMMARY BAR -->
+        <div class="summary-bar" id="summaryBar">
+            <div class="summary-item">
+                <span>Saldo ditampilkan:</span>
+                <span class="summary-value" id="sumSaldoPage">—</span>
+            </div>
+            <div class="summary-item">
+                <span>Total saldo filter:</span>
+                <span class="summary-value" id="sumSaldoAll">—</span>
+            </div>
+            <div class="summary-item">
+                <span>Jumlah baris filter:</span>
+                <span class="summary-value" id="sumCount">—</span>
+            </div>
+        </div>
+
+        <!-- PAGINATION -->
+        <div class="pagination">
+            <div class="page-info" id="paginationInfo"></div>
+            <div class="page-btns" id="pageButtons"></div>
+        </div>
+    </div>
+
+</div><!-- /main -->
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+    const API_KEY  = "AIzaSyBhiKDVDH4fle5_EqAIaA05YjpxVMEBYZM";
+    const SHEET_ID = "1jeVUjgFmTDVNsOGbKgb9Lglp8guMCTh-bNapK9owO8k";
+    const SHEET_NAME = "DETAIL";
+
+    let allData      = [];
+    let filteredData = [];
+    let currentPage  = 1;
+    let itemsPerPage = 40;
+    let currentZoom  = 100;
+    let sortCol      = null;
+    let sortDir      = 'asc'; // 'asc' | 'desc'
+
+    // ── DARK MODE ──
+    function toggleDark() {
+        const html = document.documentElement;
+        const isDark = html.dataset.theme === 'dark';
+        html.dataset.theme = isDark ? 'light' : 'dark';
+        localStorage.setItem('theme', html.dataset.theme);
+    }
+    (function initTheme() {
+        const saved = localStorage.getItem('theme');
+        if (saved) document.documentElement.dataset.theme = saved;
+        else if (window.matchMedia('(prefers-color-scheme: dark)').matches)
+            document.documentElement.dataset.theme = 'dark';
+    })();
+
+    // ── TOAST ──
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2000);
+    }
+
+    // ── LAST MODIFIED ──
+    async function loadLastModified() {
+        try {
+            const r = await fetch(`https://www.googleapis.com/drive/v3/files/${SHEET_ID}?fields=modifiedTime&key=${API_KEY}`);
+            const d = await r.json();
+            if (d.modifiedTime) {
+                const dt = new Date(d.modifiedTime).toLocaleString('id-ID', {
+                    day:'numeric', month:'short', year:'numeric',
+                    hour:'2-digit', minute:'2-digit', timeZone:'Asia/Jakarta'
+                });
+                document.getElementById('lastModified').innerHTML =
+                    `<div class="live-dot"></div><span>Update: <strong>${dt}</strong></span>`;
+            }
+        } catch(e) {
+            document.getElementById('lastModified').innerHTML = `<span style="color:var(--danger)">Gagal cek waktu</span>`;
+        }
+    }
+
+    // ── LOAD DATA ──
+    async function loadData() {
+        document.getElementById('loadingPanel').classList.remove('hidden');
+        document.getElementById('dataPanel').classList.add('hidden');
+        document.getElementById('errorPanel').classList.add('hidden');
+
+        try {
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}?key=${API_KEY}`;
+            const r = await fetch(url);
+            const d = await r.json();
+
+            if (!d.values || d.values.length < 2) throw new Error('No data');
+
+            const headers = d.values[0];
+            const rows    = d.values.slice(1);
+            const ci = {
+                raw:      headers.indexOf('RAW'),
+                plist:    headers.indexOf('NO P.LIST'),
+                produkId: headers.indexOf('PRODUK ID'),
+                packing:  headers.indexOf('PACKING'),
+                brand:    headers.indexOf('BRAND'),
+                po:       headers.indexOf('PO'),
+                jd:       headers.indexOf('JD'),
+                kode:     headers.indexOf('KODE'),
+                kodeAsal: headers.indexOf('KODE ASAL'),
+                cek:      headers.indexOf('CEK'),
+                saldo:    headers.indexOf('SALDO')
+            };
+
+            allData = rows.map(row => {
+                const rawVal  = row[ci.raw] || '';
+                const rawFirst = rawVal.substring(0, 4);
+                const raw     = (rawFirst === 'GIM' || rawFirst === 'CON') ? rawFirst.toUpperCase() : 'WKB';
+                const jd      = row[ci.jd]   || '';
+                const kode    = row[ci.kode]  || '';
+                return {
+                    raw, plist: row[ci.plist] || '', produkId: row[ci.produkId] || '',
+                    packing: row[ci.packing] || '', brand: row[ci.brand] || '',
+                    po: row[ci.po] || '', jd, kode,
+                    kodeAsal: row[ci.kodeAsal] || '', cek: row[ci.cek] || '',
+                    kodeJadi: (jd && kode) ? `${jd} ${kode}` : (jd || kode || ''),
+                    saldo: row[ci.saldo] || ''
+                };
+            });
+
+            filteredData = [...allData];
+            applyFilters();
+            setupFilters();
+            updateStats(filteredData);
+
+            document.getElementById('loadingPanel').classList.add('hidden');
+            document.getElementById('dataPanel').classList.remove('hidden');
+            applyZoom();
+            updateZoomDisplay();
+        } catch(e) {
+            console.error(e);
+            document.getElementById('loadingPanel').classList.add('hidden');
+            document.getElementById('errorPanel').classList.remove('hidden');
+        }
+    }
+
+    // ── STATS ──
+    function updateStats(data) {
+        const total  = data.length;
+        const saldo  = data.reduce((s, i) => s + (parseFloat(i.saldo) || 0), 0);
+        const brands = new Set(data.map(i => i.brand).filter(Boolean)).size;
+        const pos    = new Set(data.map(i => i.po).filter(Boolean)).size;
+        const prods  = new Set(data.map(i => i.produkId).filter(Boolean)).size;
+
+        document.getElementById('statTotal').textContent  = total.toLocaleString('id-ID');
+        document.getElementById('statSaldo').textContent  = saldo.toLocaleString('id-ID');
+        document.getElementById('statBrand').textContent  = brands;
+        document.getElementById('statPO').textContent     = pos;
+        document.getElementById('statProduk').textContent = prods;
+    }
+
+    // ── SUMMARY BAR ──
+    function updateSummary(pageData, allFiltered) {
+        const sumPage = pageData.reduce((s, i) => s + (parseFloat(i.saldo) || 0), 0);
+        const sumAll  = allFiltered.reduce((s, i) => s + (parseFloat(i.saldo) || 0), 0);
+        document.getElementById('sumSaldoPage').textContent = sumPage.toLocaleString('id-ID');
+        document.getElementById('sumSaldoAll').textContent  = sumAll.toLocaleString('id-ID');
+        document.getElementById('sumCount').textContent     = allFiltered.length.toLocaleString('id-ID');
+    }
+
+    // ── SORT ──
+    function sortBy(col) {
+        if (sortCol === col) {
+            sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+        } else {
+            sortCol = col; sortDir = 'asc';
+        }
+        // Update header visual
+        document.querySelectorAll('th').forEach(th => {
+            th.classList.remove('sort-asc', 'sort-desc');
+            if (th.dataset.col === col) th.classList.add(sortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+        });
+        // Sort filteredData
+        filteredData.sort((a, b) => {
+            let va = a[col] || '', vb = b[col] || '';
+            const na = parseFloat(va), nb = parseFloat(vb);
+            if (!isNaN(na) && !isNaN(nb)) {
+                return sortDir === 'asc' ? na - nb : nb - na;
+            }
+            return sortDir === 'asc'
+                ? va.toString().localeCompare(vb.toString(), 'id', {numeric:true, sensitivity:'base'})
+                : vb.toString().localeCompare(va.toString(), 'id', {numeric:true, sensitivity:'base'});
+        });
+        currentPage = 1;
+        renderTable();
+    }
+
+    // ── FILTERS ──
+    const filterFields = [
+        { input: 'produkFilter', sugg: 'produkSuggestions', type: 'produk' },
+        { input: 'packingFilter', sugg: 'packingSuggestions', type: 'packing' },
+        { input: 'brandFilter', sugg: 'brandSuggestions', type: 'brand' },
+        { input: 'poFilter', sugg: 'poSuggestions', type: 'po' },
+        { input: 'kodeFilter', sugg: 'kodeSuggestions', type: 'kode' },
+    ];
+    const fieldMap = { produk:'produkId', packing:'packing', brand:'brand', po:'po', kode:'kode' };
+
+    function setupFilters() {
+        filterFields.forEach(({ input: inputId, sugg: suggId, type }) => {
+            const input = document.getElementById(inputId);
+            const sugg  = document.getElementById(suggId);
+
+            input.addEventListener('input', () => {
+                showTypeSuggestions(sugg, type, inputId, input.value);
+                applyFilters();
+            });
+            input.addEventListener('focus', () => {
+                showTypeSuggestions(sugg, type, inputId, input.value);
+            });
+            input.addEventListener('blur', () => {
+                setTimeout(() => sugg.classList.add('hidden'), 300);
+            });
+            input.addEventListener('keydown', e => handleSuggKeydown(e, sugg, input));
+        });
+
+        document.getElementById('globalSearch').addEventListener('input', () => applyFilters());
+
+        // Close dropdowns on outside click
+        document.addEventListener('click', e => {
+            filterFields.forEach(({ sugg: suggId }) => {
+                const sugg = document.getElementById(suggId);
+                if (!sugg.parentElement.contains(e.target)) sugg.classList.add('hidden');
+            });
+        });
+    }
+
+    function toggleDropdownSuggestions(suggId, type, inputId) {
+        const sugg = document.getElementById(suggId);
+        if (sugg.classList.contains('hidden')) {
+            // Close all others
+            filterFields.forEach(f => document.getElementById(f.sugg).classList.add('hidden'));
+            showTypeSuggestions(sugg, type, inputId, document.getElementById(inputId).value, true);
+            sugg.classList.remove('hidden');
+        } else {
+            sugg.classList.add('hidden');
+        }
+    }
+
+    function showTypeSuggestions(sugg, type, inputId, query, showAll = false) {
+        const input   = document.getElementById(inputId);
+        const q       = query.toLowerCase().trim();
+        const options = getAvailableOptions(type);
+
+        const filtered = (q && !showAll)
+            ? options.filter(o => o.toLowerCase().includes(q))
+            : options;
+
+        if (filtered.length === 0 && q) { sugg.classList.add('hidden'); return; }
+
+        sugg.innerHTML = '';
+
+        // "All" option
+        const allDiv = document.createElement('div');
+        allDiv.className = 'suggestion-item suggestion-all';
+        allDiv.innerHTML = `<span>Semua ${type}</span>`;
+        allDiv.addEventListener('mousedown', e => e.preventDefault());
+        allDiv.addEventListener('click', () => {
+            input.value = ''; sugg.classList.add('hidden'); applyFilters();
+        });
+        sugg.appendChild(allDiv);
+
+        filtered.slice(0, 20).forEach(item => {
+            const count = filteredData.filter(d => (d[fieldMap[type]] || '').toLowerCase() === item.toLowerCase()).length;
+            const div = document.createElement('div');
+            div.className = 'suggestion-item';
+            div.innerHTML = `<span>${highlightText(item, q)}</span><span class="suggestion-count">${count}</span>`;
+            div.addEventListener('mousedown', e => e.preventDefault());
+            div.addEventListener('click', () => {
+                input.value = item; sugg.classList.add('hidden'); applyFilters();
+            });
+            sugg.appendChild(div);
+        });
+        sugg.classList.remove('hidden');
+    }
+
+    function handleSuggKeydown(e, sugg, input) {
+        const items = sugg.querySelectorAll('.suggestion-item:not(.suggestion-all)');
+        if (!items.length) return;
+        let idx = [...items].findIndex(el => el.classList.contains('active'));
+        items.forEach(el => el.classList.remove('active'));
+
+        if (e.key === 'ArrowDown') { e.preventDefault(); idx = Math.min(idx + 1, items.length - 1); items[idx]?.classList.add('active'); items[idx]?.scrollIntoView({block:'nearest'}); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); idx = Math.max(idx - 1, 0); items[idx]?.classList.add('active'); items[idx]?.scrollIntoView({block:'nearest'}); }
+        else if (e.key === 'Enter' && idx >= 0) { e.preventDefault(); items[idx]?.click(); }
+        else if (e.key === 'Escape') sugg.classList.add('hidden');
+    }
+
+    function getAvailableOptions(type) {
+        const filtersExcluding = getCurrentFilters(type);
+        const available = getFilteredData(filtersExcluding);
+        return [...new Set(available.map(d => d[fieldMap[type]]).filter(Boolean))]
+            .sort((a, b) => a.localeCompare(b, 'id', {numeric:true, sensitivity:'base'}));
+    }
+
+    function getCurrentFilters(excludeType = null) {
+        return {
+            produk:  excludeType === 'produk'  ? '' : document.getElementById('produkFilter').value.trim(),
+            packing: excludeType === 'packing' ? '' : document.getElementById('packingFilter').value.trim(),
+            brand:   excludeType === 'brand'   ? '' : document.getElementById('brandFilter').value.trim(),
+            po:      excludeType === 'po'      ? '' : document.getElementById('poFilter').value.trim(),
+            kode:    excludeType === 'kode'    ? '' : document.getElementById('kodeFilter').value.trim(),
+            global:  excludeType === 'global'  ? '' : document.getElementById('globalSearch').value.trim(),
+        };
+    }
+
+    const norm = v => (v || '').toString().trim().toLowerCase();
+
+    function getFilteredData(filters) {
+        return allData.filter(item => {
+            if (filters.produk  && norm(item.produkId)  !== norm(filters.produk))  return false;
+            if (filters.packing && norm(item.packing)   !== norm(filters.packing)) return false;
+            if (filters.brand   && norm(item.brand)     !== norm(filters.brand))   return false;
+            if (filters.po      && norm(item.po)        !== norm(filters.po))      return false;
+            if (filters.kode    && norm(item.kode)      !== norm(filters.kode))    return false;
+            if (filters.global) {
+                const q = norm(filters.global);
+                const vals = [item.raw, item.plist, item.produkId, item.packing, item.brand, item.po, item.jd, item.kode, item.kodeAsal, item.cek, item.kodeJadi, item.saldo];
+                if (!vals.some(v => norm(v).includes(q))) return false;
+            }
+            return true;
+        });
+    }
+
+    function applyFilters() {
+        const filters = getCurrentFilters();
+        filteredData  = getFilteredData(filters);
+        // Re-sort if sort is active
+        if (sortCol) sortBy(sortCol); // will re-render
+        else { currentPage = 1; renderTable(); }
+        updateStats(filteredData);
+        updateChips(filters);
+    }
+
+    function clearAllFilters() {
+        ['produkFilter','packingFilter','brandFilter','poFilter','kodeFilter','globalSearch'].forEach(id => {
+            document.getElementById(id).value = '';
+        });
+        filteredData = [...allData];
+        sortCol = null; sortDir = 'asc';
+        document.querySelectorAll('th').forEach(th => th.classList.remove('sort-asc','sort-desc'));
+        currentPage = 1;
+        renderTable();
+        updateStats(filteredData);
+        updateChips(getCurrentFilters());
+    }
+
+    // ── CHIPS ──
+    function updateChips(filters) {
+        const row = document.getElementById('activeChips');
+        row.innerHTML = '';
+        const labels = { produk:'Produk', packing:'Packing', brand:'Brand', po:'PO', kode:'Kode', global:'Cari' };
+        Object.entries(filters).forEach(([key, val]) => {
+            if (!val) return;
+            const chip = document.createElement('div');
+            chip.className = 'chip';
+            chip.innerHTML = `<span>${labels[key]}: <strong>${val}</strong></span>`;
+            const btn = document.createElement('button');
+            btn.className = 'chip-close';
+            btn.textContent = '×';
+            btn.onclick = () => {
+                const inputMap = { produk:'produkFilter', packing:'packingFilter', brand:'brandFilter', po:'poFilter', kode:'kodeFilter', global:'globalSearch' };
+                document.getElementById(inputMap[key]).value = '';
+                applyFilters();
+            };
+            chip.appendChild(btn);
+            row.appendChild(chip);
+        });
+    }
+
+    // ── HIGHLIGHT ──
+    function highlightText(text, query) {
+        if (!query) return escHtml(text);
+        const re = new RegExp(`(${escRegex(query)})`, 'gi');
+        return escHtml(text).replace(re, '<mark class="hl">$1</mark>');
+    }
+    function escHtml(s) { return (s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function escRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+
+    // ── RENDER TABLE ──
+    function renderTable() {
+        const tbody = document.getElementById('dataTableBody');
+        const empty = document.getElementById('emptyState');
+        tbody.innerHTML = '';
+
+        if (filteredData.length === 0) {
+            empty.classList.remove('hidden');
+            updatePagination(0);
+            updateSummary([], []);
+            document.getElementById('recordCount').textContent = 'Tidak ada data';
+            return;
+        }
+        empty.classList.add('hidden');
+
+        const total = filteredData.length;
+        const perPage = itemsPerPage === 0 ? total : itemsPerPage;
+        const totalPages = Math.ceil(total / perPage);
+        if (currentPage > totalPages) currentPage = 1;
+        const start = (currentPage - 1) * perPage;
+        const pageData = filteredData.slice(start, start + perPage);
+
+        const globalQ = document.getElementById('globalSearch').value.trim();
+        const filterVals = {
+            produkId: document.getElementById('produkFilter').value.trim(),
+            packing: document.getElementById('packingFilter').value.trim(),
+            brand: document.getElementById('brandFilter').value.trim(),
+            po: document.getElementById('poFilter').value.trim(),
+            kode: document.getElementById('kodeFilter').value.trim(),
+        };
+
+        pageData.forEach((item, idx) => {
+            const tr = document.createElement('tr');
+            tr.className = 'fade-in';
+
+            const lokClass = item.raw === 'GIM' ? 'gim' : item.raw.startsWith('CON') ? 'cont' : 'wkb';
+
+            function hl(val, key) {
+                let v = escHtml(val);
+                if (globalQ) {
+                    const re = new RegExp(`(${escRegex(globalQ)})`, 'gi');
+                    v = v.replace(re, '<mark class="hl">$1</mark>');
+                }
+                if (filterVals[key]) {
+                    const re = new RegExp(`(${escRegex(filterVals[key])})`, 'gi');
+                    v = v.replace(re, '<mark class="hl">$1</mark>');
+                }
+                return v;
+            }
+
+            const rowData = [item.raw, item.plist, item.produkId, item.packing, item.brand, item.po, item.jd, item.kode, item.kodeAsal, item.cek, item.kodeJadi, item.saldo];
+            const rowText = rowData.join('\t');
+
+            tr.innerHTML = `
+                <td><span class="col-lokasi ${lokClass}">${escHtml(item.raw)}</span></td>
+                <td>${hl(item.plist,'')}</td>
+                <td>${hl(item.produkId,'produkId')}</td>
+                <td>${hl(item.packing,'packing')}</td>
+                <td>${hl(item.brand,'brand')}</td>
+                <td>${hl(item.po,'po')}</td>
+                <td>${hl(item.jd,'')}</td>
+                <td>${hl(item.kode,'kode')}</td>
+                <td>${hl(item.kodeAsal,'')}</td>
+                <td>${hl(item.cek,'')}</td>
+                <td class="col-kode-jadi">${hl(item.kodeJadi,'')}</td>
+                <td class="col-saldo">${hl(item.saldo,'')}</td>
+                <td>
+                    <button class="copy-btn" title="Copy baris" onclick="copyRow('${rowText.replace(/'/g,"\\'")}')">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        updatePagination(totalPages);
+        updateSummary(pageData, filteredData);
+        document.getElementById('recordCount').textContent =
+            `${total.toLocaleString('id-ID')} record (dari ${allData.length.toLocaleString('id-ID')} total)`;
+        document.getElementById('paginationInfo').textContent =
+            `Halaman ${currentPage} dari ${totalPages || 1} · ${start + 1}–${Math.min(start + perPage, total)} dari ${total}`;
+    }
+
+    // ── COPY ROW ──
+    function copyRow(text) {
+        navigator.clipboard.writeText(text.replace(/\\t/g,'\t')).then(() => showToast('✓ Baris disalin!'));
+    }
+
+    // ── PAGINATION ──
+    function updatePagination(totalPages) {
+        const container = document.getElementById('pageButtons');
+        container.innerHTML = '';
+        const total = filteredData.length;
+        const perPage = itemsPerPage === 0 ? total || 1 : itemsPerPage;
+        const tp = Math.ceil(total / perPage) || 1;
+
+        const makeBtn = (label, page, disabled, active) => {
+            const b = document.createElement('button');
+            b.className = 'page-btn' + (active ? ' active' : '');
+            b.innerHTML = label; b.disabled = disabled;
+            b.onclick = () => { currentPage = page; renderTable(); };
+            return b;
+        };
+
+        container.appendChild(makeBtn('«', 1, currentPage === 1, false));
+        container.appendChild(makeBtn('‹', currentPage - 1, currentPage === 1, false));
+
+        let start = Math.max(1, currentPage - 2);
+        let end   = Math.min(tp, start + 4);
+        if (end - start < 4) start = Math.max(1, end - 4);
+
+        for (let i = start; i <= end; i++)
+            container.appendChild(makeBtn(i, i, false, i === currentPage));
+
+        container.appendChild(makeBtn('›', currentPage + 1, currentPage === tp, false));
+        container.appendChild(makeBtn('»', tp, currentPage === tp, false));
+    }
+
+    function changePerPage(val) {
+        itemsPerPage = parseInt(val) || 0;
+        currentPage = 1;
+        renderTable();
+    }
+
+    // ── ZOOM ──
+    function adjustZoom(delta) {
+        currentZoom = Math.max(50, Math.min(200, currentZoom + delta));
+        applyZoom(); updateZoomDisplay();
+    }
+    function resetZoom() { currentZoom = 100; applyZoom(); updateZoomDisplay(); }
+    function applyZoom() {
+        const c = document.getElementById('zoomContainer');
+        if (c) c.style.zoom = `${currentZoom}%`;
+        document.getElementById('zoomOutBtn').disabled = currentZoom <= 50;
+        document.getElementById('zoomInBtn').disabled  = currentZoom >= 200;
+    }
+    function updateZoomDisplay() {
+        document.getElementById('zoomLevel').textContent = `${currentZoom}%`;
+    }
+
+    // keyboard shortcuts
+    document.addEventListener('keydown', e => {
+        if (e.ctrlKey || e.metaKey) {
+            if (e.key === '=' || e.key === '+') { e.preventDefault(); adjustZoom(10); }
+            else if (e.key === '-') { e.preventDefault(); adjustZoom(-10); }
+            else if (e.key === '0') { e.preventDefault(); resetZoom(); }
+        }
+    });
+
+    // ── EXPORT PDF ──
+    function exportToPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('l','mm','a4');
+        doc.setFontSize(14); doc.text('Data Stok WKB', 14, 14);
+        doc.setFontSize(9);  doc.text(`Export: ${new Date().toLocaleDateString('id-ID')} · ${filteredData.length} record`, 14, 20);
+        doc.autoTable({
+            head: [['Lokasi','No PL','Produk ID','Packing','Brand','PO','JD','Kode','Kode Asal','Cek','Kode Jadi','Saldo']],
+            body: filteredData.map(i => [i.raw,i.plist,i.produkId,i.packing,i.brand,i.po,i.jd,i.kode,i.kodeAsal,i.cek,i.kodeJadi,i.saldo]),
+            startY: 26, styles: { fontSize: 7, cellPadding: 2 },
+            headStyles: { fillColor: [37,99,235], fontSize: 7, fontStyle: 'bold' },
+            alternateRowStyles: { fillColor: [245,247,250] }
+        });
+        doc.save(`stok-wkb-${new Date().toISOString().slice(0,10)}.pdf`);
+        showToast('✓ PDF diunduh!');
+    }
+
+    // ── EXPORT EXCEL ──
+    function exportToExcel() {
+        const ws = XLSX.utils.json_to_sheet(filteredData.map(i => ({
+            'LOKASI':i.raw,'NO P.LIST':i.plist,'PRODUK ID':i.produkId,'PACKING':i.packing,
+            'BRAND':i.brand,'PO':i.po,'JD':i.jd,'KODE':i.kode,'KODE ASAL':i.kodeAsal,
+            'CEK':i.cek,'KODE JADI':i.kodeJadi,'SALDO':i.saldo
+        })));
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Data Stok');
+        XLSX.writeFile(wb, `stok-wkb-${new Date().toISOString().slice(0,10)}.xlsx`);
+        showToast('✓ Excel diunduh!');
+    }
+
+    // ── EXPORT PIVOT ──
+    function exportPivotTable() {
+        const pivot = {};
+        filteredData.forEach(item => {
+            const po = item.po || '-', brand = item.brand || '-',
+                  pid = item.produkId || '-', pack = item.packing || '-',
+                  kj  = item.kodeJadi || '-', sal = parseFloat(item.saldo) || 0;
+            if (!pivot[po]) pivot[po] = {};
+            if (!pivot[po][brand]) pivot[po][brand] = {};
+            if (!pivot[po][brand][pid]) pivot[po][brand][pid] = {};
+            if (!pivot[po][brand][pid][pack]) pivot[po][brand][pid][pack] = {};
+            if (!pivot[po][brand][pid][pack][kj]) pivot[po][brand][pid][pack][kj] = { total:0, count:0 };
+            pivot[po][brand][pid][pack][kj].total += sal;
+            pivot[po][brand][pid][pack][kj].count += 1;
+        });
+        const flat = [];
+        Object.keys(pivot).sort().forEach(po =>
+            Object.keys(pivot[po]).sort().forEach(brand =>
+                Object.keys(pivot[po][brand]).sort().forEach(pid =>
+                    Object.keys(pivot[po][brand][pid]).sort().forEach(pack =>
+                        Object.keys(pivot[po][brand][pid][pack]).sort().forEach(kj => {
+                            const d = pivot[po][brand][pid][pack][kj];
+                            flat.push({'PO':po,'BRAND':brand,'PRODUK ID':pid,'PACKING':pack,'KODE JADI':kj,'TOTAL SALDO':d.total,'JUMLAH ITEM':d.count});
+                        })
+                    )
+                )
+            )
+        );
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(flat), 'Pivot Detail');
+        XLSX.writeFile(wb, `pivot-stok-${new Date().toISOString().slice(0,10)}.xlsx`);
+        showToast('✓ Pivot diunduh!');
+    }
+
+    // ── INIT ──
+    loadData();
+    loadLastModified();
+</script>
+</body>
+</html>
